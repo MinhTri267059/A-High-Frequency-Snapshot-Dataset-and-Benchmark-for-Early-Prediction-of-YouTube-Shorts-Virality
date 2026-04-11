@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+node_modules/
+**/node_modules/
+.env
+*.log
+
+# Models & Data (Ignoring raw massive CSVs)
+*.csv
+*.pth
+*.log
+2026/
+models/
+evaluation_plots/
+
+# Frontend
+node_modules/
+yt-dashboard/dist
+yt-dashboard/.env.local
+yt-dashboard/.env.development.local
+yt-dashboard/.env.test.local
+yt-dashboard/.env.production.local
+
+# OS
+.DS_Store
+Thumbs.db

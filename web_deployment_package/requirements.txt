@@ -1,0 +1,14 @@
+# Core Processing
+numpy==1.26.4
+pandas==2.2.1
+scikit-learn==1.4.1.post1
+xgboost==2.0.3
+
+# NLP & Machine Learning
+sentence-transformers==3.0.1
+torch --index-url https://download.pytorch.org/whl/cpu
+
+# API Framework
+fastapi==0.111.0
+uvicorn==0.30.1
+python-multipart==0.0.9
