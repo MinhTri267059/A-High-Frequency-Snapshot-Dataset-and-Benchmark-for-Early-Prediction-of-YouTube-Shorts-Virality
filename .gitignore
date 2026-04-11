@@ -9,13 +9,19 @@ node_modules/
 .env
 *.log
 
-# Models & Data (Ignoring raw massive CSVs)
+# Models & Data (Excluding files > 100MB for GitHub compliance)
+models/best_views_48h_RF.pkl
+models/best_views_7d_RF.pkl
+models/best_views_24h_RF.pkl
+models/best_views_72h_RF.pkl
 *.csv
 *.pth
 *.log
-2026/
-models/
-evaluation_plots/
+
+# No longer ignoring the folder paths, just the large files inside
+# 2026/
+# models/
+# evaluation_plots/
 
 # Frontend
 node_modules/
