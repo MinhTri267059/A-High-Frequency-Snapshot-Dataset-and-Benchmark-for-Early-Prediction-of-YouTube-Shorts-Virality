@@ -86,4 +86,4 @@ docker run -p 8000:8000 youtube-predictor
 ```
 
 ---
-*Phát triển bởi Đội ngũ Predict Views YouTube Short*
+
