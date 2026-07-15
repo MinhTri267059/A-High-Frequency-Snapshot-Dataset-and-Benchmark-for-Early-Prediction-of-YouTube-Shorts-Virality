@@ -126,10 +126,13 @@ def clean_and_impute_fast(raw_records):
     df_merged['like_ratio_6h'] = (df_merged['l6'] / df_merged['views_at_6h']).fillna(0)
     df_merged['comment_ratio_6h'] = (df_merged['c6'] / df_merged['views_at_6h']).fillna(0)
     
-    # Chỉ số Gia tốc theo mốc đề xuất
+    # Chỉ số Vận tốc (Velocity) và Gia tốc (Acceleration)
     df_merged['vel_2'] = df_merged['views_at_2h'] - df_merged['v0']
     df_merged['vel_4'] = df_merged['views_at_4h'] - df_merged['views_at_2h']
     df_merged['vel_6'] = df_merged['views_at_6h'] - df_merged['views_at_4h']
+    
+    df_merged['acc_4'] = df_merged['vel_4'] - df_merged['vel_2']
+    df_merged['acc_6'] = df_merged['vel_6'] - df_merged['vel_4']
 
     # Chỉ số Gia tốc của Like & Comment (Engagements)
     df_merged['vel_likes_2'] = (df_merged['l2'] - df_merged['l0']).fillna(0)
@@ -140,29 +143,45 @@ def clean_and_impute_fast(raw_records):
     df_merged['vel_cmts_4'] = (df_merged['c4'] - df_merged['c2']).fillna(0)
     df_merged['vel_cmts_6'] = (df_merged['c6'] - df_merged['c4']).fillna(0)
 
-    # Last view logic
+    # Last view logic for rolling stats
     last_views = df_sorted.drop_duplicates('video_id', keep='last')[['video_id', 'views']].rename(columns={'views':'_last_views'})
     df_merged = df_merged.merge(last_views, on='video_id', how='left')
 
-    ch_stats = df_merged.groupby('channel_id').agg(
-        channel_avg_views=('_last_views', 'mean'),
-        channel_video_count=('video_id', 'nunique'),
-        channel_avg_vel_6h=('vel_6', 'mean')
-    ).reset_index()
+    # 🟢 Rolling Channel Stats (Chống Data Leakage)
+    df_merged = df_merged.sort_values(['channel_id', 'published_at'])
     
-    df_merged['is_viral'] = df_merged['_last_views'] > df_merged.groupby('channel_id')['_last_views'].transform('median')
-    ch_viral = df_merged.groupby('channel_id')['is_viral'].mean().rename('channel_viral_rate').reset_index()
+    # 1. Rolling video count (số video đã đăng trước đó)
+    df_merged['channel_video_count'] = df_merged.groupby('channel_id').cumcount()
+    
+    # 2. Rolling avg views (không bao gồm video hiện tại)
+    df_merged['channel_avg_views'] = df_merged.groupby('channel_id')['_last_views'].transform(lambda x: x.shift().expanding().mean()).fillna(0)
+    
+    # 3. Rolling avg vel 6h
+    df_merged['channel_avg_vel_6h'] = df_merged.groupby('channel_id')['vel_6'].transform(lambda x: x.shift().expanding().mean()).fillna(0)
+    
+    # 4. Rolling viral rate (Tỷ lệ viral trong quá khứ)
+    rolling_median = df_merged.groupby('channel_id')['_last_views'].transform(lambda x: x.shift().expanding().median()).fillna(0)
+    past_is_viral = (df_merged['_last_views'].shift() > rolling_median).fillna(False)
+    
+    # Mask cho video đầu tiên của kênh
+    first_video_mask = df_merged['channel_video_count'] == 0
+    past_is_viral[first_video_mask] = False
+    
+    df_merged['_past_is_viral'] = past_is_viral.astype(int)
+    # Mean của các video từ trước tới nay
+    df_merged['channel_viral_rate'] = df_merged.groupby('channel_id')['_past_is_viral'].transform(lambda x: x.expanding().mean()).fillna(0)
+    df_merged = df_merged.drop(columns=['_past_is_viral'])
+    
+    # Tái lập sắp xếp theo thời gian chung cho pipeline
+    df_merged = df_merged.sort_values('published_at').reset_index(drop=True)
 
-    df_merged = df_merged.merge(ch_stats, on='channel_id', how='left')
-    df_merged = df_merged.merge(ch_viral, on='channel_id', how='left')
-    
     df_merged['is_viral_1m'] = (df_merged['_last_views'] >= 1000000).astype(int)
 
     # 🌟 Bổ sung Tính năng: Sức mạnh Kênh (Composite Score)
     max_avg_views = df_merged['channel_avg_views'].max() if df_merged['channel_avg_views'].max() > 0 else 1
     df_merged['channel_strength'] = (df_merged['channel_avg_views'] / max_avg_views) * 0.7 + df_merged['channel_viral_rate'] * 0.3
 
-    df_merged = df_merged.drop(columns=['_last_views', 'is_viral', 'v0', 'v2', 'v4', 'v6', 'v24', 'v48', 'v168', 'l0', 'l2', 'l4', 'l6', 'c0', 'c2', 'c4', 'c6'], errors='ignore')
+    df_merged = df_merged.drop(columns=['_last_views', 'v0', 'v2', 'v4', 'v6', 'v24', 'v48', 'v168', 'l0', 'l2', 'l4', 'l6', 'c0', 'c2', 'c4', 'c6'], errors='ignore')
 
     # 🌟 GIAI ĐOẠN 1: Mã hóa Tiêu Đề (NLP Title Embedding)
     print("Bắt đầu Mã hóa Tiêu đề (Sentence-Transformers)...")

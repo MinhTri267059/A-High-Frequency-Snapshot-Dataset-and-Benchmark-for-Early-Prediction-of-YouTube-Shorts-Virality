@@ -43,15 +43,13 @@ os.makedirs(MODEL_DIR,  exist_ok=True)
 # ─────────────────────────────────────────────
 def plot_histogram_and_choose_threshold(train_path, test_path):
     print("=" * 60)
-    print("STEP 1: Analysing views_24h distribution...")
+    print("STEP 1: Analysing views_24h distribution (Train set only)...")
     print("=" * 60)
 
-    df_all = pd.concat([
-        pd.read_csv(train_path, low_memory=False),
-        pd.read_csv(test_path,  low_memory=False),
-    ], ignore_index=True)
-
-    views = df_all['views_24h'].dropna()
+    # Strict Isolation: Calculate threshold using ONLY the training set
+    df_train = pd.read_csv(train_path, low_memory=False)
+    
+    views = df_train['views_24h'].dropna()
     views = views[views >= 0]
 
     # Tính các percentiles
@@ -127,14 +125,16 @@ def prepare_data(train_path, test_path, threshold):
     test_df  = pd.read_csv(test_path,  low_memory=False).fillna(0)
 
     # Tạo label từ threshold (không dùng is_viral_1m cũ nữa)
-    y_train = (train_df['views_24h'] >= threshold).astype(int)
-    y_test  = (test_df['views_24h']  >= threshold).astype(int)
+    # Tạo label từ threshold (Strict isolation: > threshold)
+    # Ghi chú: Sử dụng > thay vì >= để tránh tình trạng số lượng bằng nhau ở ngưỡng làm thay đổi phân phối lớp
+    y_train = (train_df['views_24h'] > threshold).astype(int)
+    y_test  = (test_df['views_24h']  > threshold).astype(int)
 
     print(f"  Train  → viral: {y_train.sum():,} / {len(y_train):,} ({100*y_train.mean():.1f}%)")
     print(f"  Test   → viral: {y_test.sum():,}  / {len(y_test):,} ({100*y_test.mean():.1f}%)")
 
     # Drop leak columns (các cột liên quan đến views, id, dates)
-    leak_cols = ['video_id', 'channel_id', 'publishe‹d_date', 'category_id',
+    leak_cols = ['video_id', 'channel_id', 'published_date', 'category_id',
                  'views_24h', 'views_48h', 'views_7d', 'is_viral_1m']
 
     drop_train = [c for c in leak_cols if c in train_df.columns]
@@ -253,7 +253,7 @@ def save_artifacts(model, scaler, threshold, feature_cols):
         'feature_cols': feature_cols,
         'label_info'  : {
             'target'     : 'is_top_viral',
-            'definition' : f'views_24h >= {threshold:,.0f}',
+            'definition' : f'views_24h > {threshold:,.0f}',
             'percentile' : THRESHOLD_PERCENTILE,
             'class_0'    : 'Not Viral',
             'class_1'    : 'Top Viral',
@@ -266,7 +266,7 @@ def save_artifacts(model, scaler, threshold, feature_cols):
 
     print(f"  → Saved: {save_path}")
     print(f"  → Keys : {list(artifacts.keys())}")
-    print(f"  → Label: views_24h >= {threshold:,.0f}  →  Top Viral")
+    print(f"  → Label: views_24h > {threshold:,.0f}  →  Top Viral")
 
     return save_path
 
@@ -292,7 +292,7 @@ if __name__ == "__main__":
 
     print("\n" + "=" * 60)
     print("✅  DONE!")
-    print(f"   Threshold : views_24h >= {threshold:,.0f}  (top {100-THRESHOLD_PERCENTILE}%)")
+    print(f"   Threshold : views_24h > {threshold:,.0f}  (top {100-THRESHOLD_PERCENTILE}%)")
     print(f"   F1-Viral  : {metrics['F1_viral']:.4f}")
     print(f"   F1-Macro  : {metrics['F1_macro']:.4f}")
     print(f"   ROC-AUC   : {metrics['AUC']:.4f}")

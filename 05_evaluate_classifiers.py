@@ -59,9 +59,15 @@ class HybridLSTMClassif(nn.Module):
         out = torch.cat((h.squeeze(0), st), 1)
         return self.fc(out).squeeze(-1)
 
-THRESHOLD   = 54_961
 OUTPUT_DIR  = 'evaluation_plots'
 MODEL_DIR   = 'models'
+
+# Calculate THRESHOLD dynamically from Train set to prevent leakage
+df_train_tmp = pd.read_csv('clean_train_time.csv', low_memory=False)
+views_train = df_train_tmp['views_24h'].dropna()
+views_train = views_train[views_train >= 0]
+THRESHOLD = np.percentile(views_train, 90)
+del df_train_tmp, views_train
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(MODEL_DIR,  exist_ok=True)
 
@@ -74,7 +80,7 @@ LEAK_COLS = ['video_id','channel_id','published_date','category_id',
 def load_and_label(path):
     df = pd.read_csv(path, low_memory=False).fillna(0)
     df['_date'] = pd.to_datetime(df['published_date'], errors='coerce')
-    y = (df['views_24h'] >= THRESHOLD).astype(int)
+    y = (df['views_24h'] > THRESHOLD).astype(int)
     X = df.drop(columns=[c for c in LEAK_COLS if c in df.columns])
     X = X.drop(columns=['_date'], errors='ignore')
     X = X.replace([np.inf, -np.inf], 0).fillna(0)
@@ -99,6 +105,7 @@ print("=" * 65)
 
 EARLY_FEATURES = ['views_at_2h','views_at_4h','views_at_6h',
                    'vel_2','vel_4','vel_6',
+                   'acc_4','acc_6',
                    'vel_likes_2','vel_likes_4','vel_likes_6',
                    'vel_cmts_2','vel_cmts_4','vel_cmts_6',
                    'like_ratio_6h','comment_ratio_6h']
@@ -231,7 +238,7 @@ print("=" * 65)
 df_all = pd.concat([df_train, df_test], ignore_index=True)
 df_all['_date'] = pd.to_datetime(df_all['published_date'], errors='coerce')
 df_all = df_all.sort_values('_date').reset_index(drop=True)
-df_all['y'] = (df_all['views_24h'] >= THRESHOLD).astype(int)
+df_all['y'] = (df_all['views_24h'] > THRESHOLD).astype(int)
 
 # 3 folds: expand window
 dates = df_all['_date'].dropna().sort_values().unique()
@@ -324,7 +331,7 @@ print("=" * 65)
 fig = plt.figure(figsize=(20, 14))
 gs = gridspec.GridSpec(3, 3, figure=fig, hspace=0.45, wspace=0.35)
 fig.suptitle('Viral Classifier — Comprehensive Evaluation Dashboard\n'
-             f'(Threshold: views_24h ≥ {THRESHOLD:,} | Time-Based Split)',
+             f'(Threshold: views_24h > {THRESHOLD:,.0f} | Time-Based Split)',
              fontsize=14, fontweight='bold')
 
 colors = {'Heuristic (6h views)': '#aaaaaa',

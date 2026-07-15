@@ -15,8 +15,9 @@ Mô hình hoàn toàn **chỉ sử dụng thông tin khả dụng tại thời �
 
 ### 2. Định nghĩa Bài toán Phân loại (Framing the Problem)
 Thay vì chỉ giải quyết bài toán Hồi quy (Regression) để đoán số view, dự án định nghĩa một bài toán Phân loại nhị phân (Binary Classification) khó hơn:
-- **"Viral"** được định nghĩa bằng một ngưỡng (Threshold) phân vị cao. Ví dụ, video được dán nhãn là 1 (Viral) nếu số view ở giờ 24 vượt qua mốc `54,961 views` (tương ứng với top 10% các video thành công nhất).
-- Dataset mang tính mất cân bằng dữ liệu cực cao (Highly Imbalanced Data), với lớp Tích cực (Viral) thường chỉ chiếm `< 10%`.
+- **"Viral"** được định nghĩa bằng một ngưỡng (Threshold) phân vị cao. Ví dụ, video được dán nhãn là 1 (Viral) nếu số view ở giờ 24 vượt qua mốc `56,785 views` (tương ứng với top 10% các video thành công nhất).
+- Ngưỡng này được tính toán **hoàn toàn độc lập trên tập Train** (Train-set strict isolation) để đảm bảo không bị rò rỉ phân phối phân vị từ tập Test vào quá trình tạo nhãn.
+- Dataset mang tính mất cân bằng dữ liệu cực cao (Highly Imbalanced Data), với lớp Tích cực (Viral) thường chỉ chiếm khoảng `10%`.
 
 ### 3. Mô hình So sánh (Model Benchmarking)
 Dự án thực hiện đánh giá chéo (Walk-Forward Time-Series CV) và so sánh nhiều phương pháp luận khác nhau:
@@ -34,8 +35,9 @@ Do dữ liệu mất cân bằng, các chỉ số truyền thống như Accuracy
 - **F1-Macro / F1-Viral**
 
 **Kết quả thực nghiệm:**
-- **XGBoost** cho thấy khả năng vượt trội ở **PR-AUC (0.8386)** và **Brier Score (0.0557)**, xử lý tốt nhất lớp thiểu số (Viral).
-- Mô hình **LSTM** đạt kết quả khá (PR-AUC 0.7946, ROC-AUC 0.9654), tuy nhiên do độ dài chuỗi thời gian khả dụng quá ngắn (chỉ 3 mốc 2h, 4h, 6h), kiến trúc Deep Learning không tận dụng được tối đa ưu thế, khiến các giải pháp dạng Tree-based như XGBoost chiếm ưu thế tuyệt đối về mặt tính toán và hiệu năng thực tiễn.
+- Trải qua bài kiểm tra chéo theo thời gian (3-fold Walk-Forward CV) chặt chẽ, **XGBoost** cho thấy khả năng vượt trội ở **PR-AUC trung bình (0.7769)**, **ROC-AUC (0.9634)** và **Brier Score (0.0564)**, xử lý rất tốt lớp thiểu số.
+- Khi đánh giá Hold-out tĩnh, XGBoost giữ PR-AUC đạt `0.8198`.
+- Mô hình **LSTM** đạt kết quả khá (PR-AUC 0.7827, ROC-AUC 0.9612), tuy nhiên do độ dài chuỗi thời gian khả dụng quá ngắn (chỉ 3 mốc 2h, 4h, 6h), kiến trúc Deep Learning chưa tận dụng được tối đa ưu thế. Giải pháp dạng Tree-based (XGBoost) vẫn duy trì sự ổn định, tốc độ học nhanh, và khả năng giải thích rõ ràng hơn.
 - Giá trị **SHAP (SHapley Additive exPlanations)** được phân tích để minh bạch hoá mô hình, chứng minh rằng số view tại 6h và lịch sử kênh đóng vai trò chủ đạo định hướng dự đoán của XGBoost.
 
 ---
