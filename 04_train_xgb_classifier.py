@@ -21,7 +21,7 @@ from xgboost import XGBClassifier
 from sklearn.metrics import (
     classification_report, roc_auc_score, f1_score,
     confusion_matrix, ConfusionMatrixDisplay, precision_recall_curve,
-    roc_curve
+    roc_curve, average_precision_score
 )
 from sklearn.preprocessing import StandardScaler
 import pickle
@@ -223,10 +223,12 @@ def train_and_evaluate(X_train, y_train, X_test, y_test, threshold):
 
     # Precision-Recall curve
     prec, rec, _ = precision_recall_curve(y_test, y_prob)
-    axes[2].plot(rec, prec, color='#E84C4C', lw=2)
+    pr_auc = average_precision_score(y_test, y_prob)
+    axes[2].plot(rec, prec, color='#E84C4C', lw=2, label=f'PR-AUC = {pr_auc:.3f}')
     axes[2].set_xlabel('Recall')
     axes[2].set_ylabel('Precision')
     axes[2].set_title('Precision-Recall Curve')
+    axes[2].legend()
     axes[2].grid(alpha=0.3)
 
     plt.tight_layout()
