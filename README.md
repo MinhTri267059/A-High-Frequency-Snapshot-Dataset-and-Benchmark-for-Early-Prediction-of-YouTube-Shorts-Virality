@@ -88,4 +88,23 @@ docker run -p 8000:8000 youtube-predictor
 ```
 
 ---
+## How to cite
 
+If you found our work, dataset, or benchmark useful in your research, please cite our paper:
+
+M.-T. Truong and H.-N. Tran. [A High-Frequency Snapshot Dataset and Benchmark for Early Prediction of YouTube Shorts Virality](https://link.springer.com/chapter/10.1007/978-981-92-8104-6_43). *Future Data and Security Engineering (FDSE 2026)*, Communications in Computer and Information Science, vol. 3238, pp. 580–594, Springer, 2027. doi: [10.1007/978-981-92-8104-6_43](https://doi.org/10.1007/978-981-92-8104-6_43).
+
+```bibtex
+@inproceedings{truong2027high,
+  author    = {Truong, Minh-Tri and Tran, Hung-Nghiep},
+  title     = {A High-Frequency Snapshot Dataset and Benchmark for Early Prediction of YouTube Shorts Virality},
+  booktitle = {Future Data and Security Engineering. FDSE 2026},
+  editor    = {Dang, Tran Khanh and K{\"u}ng, Josef and Chung, Tai M. and Tran, Minh-Triet and Pastor, Oscar},
+  series    = {Communications in Computer and Information Science},
+  volume    = {3238},
+  pages     = {580--594},
+  publisher = {Springer},
+  address   = {Singapore},
+  year      = {2027},
+  doi       = {10.1007/978-981-92-8104-6_43}
+}
